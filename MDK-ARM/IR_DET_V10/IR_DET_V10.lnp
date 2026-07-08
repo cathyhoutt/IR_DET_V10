@@ -1,0 +1,28 @@
+--cpu Cortex-M3
+"ir_det_v10\startup_stm32f103xe.o"
+"ir_det_v10\main.o"
+"ir_det_v10\gpio.o"
+"ir_det_v10\adc.o"
+"ir_det_v10\dma.o"
+"ir_det_v10\usart.o"
+"ir_det_v10\stm32f1xx_it.o"
+"ir_det_v10\stm32f1xx_hal_msp.o"
+"ir_det_v10\stm32f1xx_hal_gpio_ex.o"
+"ir_det_v10\stm32f1xx_hal_adc.o"
+"ir_det_v10\stm32f1xx_hal_adc_ex.o"
+"ir_det_v10\stm32f1xx_hal.o"
+"ir_det_v10\stm32f1xx_hal_rcc.o"
+"ir_det_v10\stm32f1xx_hal_rcc_ex.o"
+"ir_det_v10\stm32f1xx_hal_gpio.o"
+"ir_det_v10\stm32f1xx_hal_dma.o"
+"ir_det_v10\stm32f1xx_hal_cortex.o"
+"ir_det_v10\stm32f1xx_hal_pwr.o"
+"ir_det_v10\stm32f1xx_hal_flash.o"
+"ir_det_v10\stm32f1xx_hal_flash_ex.o"
+"ir_det_v10\stm32f1xx_hal_exti.o"
+"ir_det_v10\stm32f1xx_hal_uart.o"
+"ir_det_v10\system_stm32f1xx.o"
+--strict --scatter "IR_DET_V10\IR_DET_V10.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "IR_DET_V10.map" -o IR_DET_V10\IR_DET_V10.axf
