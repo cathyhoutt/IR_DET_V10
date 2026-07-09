@@ -29,6 +29,22 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
 
+
+// ??I2C PC11 SDA PC12 SCL
+#define SOFT_SDA_PIN   GPIO_PIN_11
+#define SOFT_SDA_PORT  GPIOC
+#define SOFT_SCL_PIN   GPIO_PIN_12
+#define SOFT_SCL_PORT  GPIOC
+#define AT24C02_ADDR   0xA0
+
+// DS18B20 PC9
+#define DS18B20_PIN    GPIO_PIN_9
+#define DS18B20_PORT   GPIOC
+
+// ???????
+#define USART2_RX_BUF_LEN 128
+#define USART1_RX_BUF_LEN 64
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -52,6 +68,13 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
+uint16_t ADC_ReadPD(void);
+
+void UART2_SendStr(char *str);
+
+void UART1_SendStr(char *str);
+
+void SystemClock_Config(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

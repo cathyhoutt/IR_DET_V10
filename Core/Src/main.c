@@ -1,112 +1,161 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
 #include "dma.h"
 #include "usart.h"
 #include "gpio.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 
-/* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
+// USART2 DMA????
+uint8_t usart2_rx_buf[USART2_RX_BUF_LEN] = {0};
+uint16_t usart2_rx_len = 0;
+uint8_t usart2_frame_flag = 0;
 
-/* USER CODE END PTD */
+// USART1 ???????
+uint8_t usart1_rx_buf[USART1_RX_BUF_LEN] = {0};
+uint16_t usart1_rx_cnt = 0;
+uint8_t usart1_frame_flag = 0;
 
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
+uint16_t adc_pd_val = 0;
+float env_temp = 0.0f;
 
-/* USER CODE END PD */
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+extern DMA_HandleTypeDef hdma_usart2_rx;
 
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
 
-/* USER CODE END PM */
+// ADG719?????? PA0
+#define ADG719_SW_PIN  GPIO_PIN_0
+#define ADG719_SW_PORT GPIOA
 
-/* Private variables ---------------------------------------------------------*/
+// ????????
+void ADG719_Enable(void);
+void ADG719_Disable(void);
 
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
 int main(void)
 {
+    HAL_Init();
+    SystemClock_Config();
 
-  /* USER CODE BEGIN 1 */
+    MX_GPIO_Init();
+    MX_DMA_Init();
 
-  /* USER CODE END 1 */
+    MX_USART1_UART_Init();
+    MX_USART2_UART_Init();
+    MX_ADC1_Init();
 
-  /* MCU Configuration--------------------------------------------------------*/
+    // USART2 ??DMA?? + ????
+		HAL_NVIC_DisableIRQ(DMA1_Channel6_IRQn);
+    HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART2_RX_BUF_LEN);
+    __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+	  __HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
+	  volatile uint16_t temp = 99;
+	  dwin_send_vp_82(0x1000, temp);
+		// ??DMA??
+		//HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART2_RX_BUF_LEN);
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+    // USART1 ???????
+    HAL_UART_Receive_IT(&huart1, &usart1_rx_buf[0], 1);
+    __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
 
-  /* USER CODE BEGIN Init */
+    while (1)
+    {
+        // ??PD ADC??
+        adc_pd_val = ADC_ReadPD();
+        // ??PC9 DS18B20??
+        env_temp = DS18B20_GetTemp();
 
-  /* USER CODE END Init */
+        // ???DMA???
+        if (usart2_frame_flag == 1)
+        {
+            usart2_frame_flag = 0;
+            UART2_SendStr("DGUS DMA Recv OK\r\n");
+            // ??????DMA
+            memset(usart2_rx_buf, 0, USART2_RX_BUF_LEN);
+            HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART2_RX_BUF_LEN);
+        }
 
-  /* Configure the system clock */
-  SystemClock_Config();
+        // ????1????
+        if (usart1_frame_flag == 1)
+        {
+            usart1_frame_flag = 0;
+            UART1_SendStr("IR Data Recv\r\n");
+            memset(usart1_rx_buf, 0, USART1_RX_BUF_LEN);
+            usart1_rx_cnt = 0;
+            HAL_UART_Receive_IT(&huart1, &usart1_rx_buf[0], 1);
+        }
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
-  MX_ADC1_Init();
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+        HAL_Delay(100);
+    }
 }
+
+// ADC??PA1 PD???
+uint16_t ADC_ReadPD(void)
+{
+    uint16_t val = 0;
+    HAL_ADC_Start(&hadc1);
+    HAL_ADC_PollForConversion(&hadc1, 10);
+    val = HAL_ADC_GetValue(&hadc1);
+    HAL_ADC_Stop(&hadc1);
+    return val;
+}
+
+void UART2_SendStr(char *str)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t *)str, strlen(str), 100);
+}
+void UART1_SendStr(char *str)
+{
+    HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), 100);
+}
+
+void HAL_UART_IdleCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == USART2)
+    {
+        HAL_DMA_Abort(&hdma_usart2_rx);
+        usart2_rx_len = USART2_RX_BUF_LEN - __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);
+        usart2_frame_flag = 1;
+        memset(usart2_rx_buf, 0, USART2_RX_BUF_LEN);
+        HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART2_RX_BUF_LEN);
+    }
+    if(huart->Instance == USART1)
+    {
+        usart1_frame_flag = 1;
+    }
+}
+
+// ????????? USART1
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1)
+    {
+        usart1_rx_cnt++;
+        if (usart1_rx_cnt >= USART1_RX_BUF_LEN)
+        {
+            usart1_rx_cnt = 0;
+            memset(usart1_rx_buf, 0, USART1_RX_BUF_LEN);
+        }
+        HAL_UART_Receive_IT(&huart1, &usart1_rx_buf[usart1_rx_cnt], 1);
+    }
+		if(huart->Instance == USART2)
+    {
+        // ?????????,????????????
+        UART1_SendStr("USART2 RX DATA IN\n");
+    }
+}
+
+// ADG719????(PA0???)
+void ADG719_Enable(void)
+{
+    HAL_GPIO_WritePin(ADG719_SW_PORT, ADG719_SW_PIN, GPIO_PIN_SET);
+}
+// ADG719????(PA0???)
+void ADG719_Disable(void)
+{
+    HAL_GPIO_WritePin(ADG719_SW_PORT, ADG719_SW_PIN, GPIO_PIN_RESET);
+}
+
 
 /**
   * @brief System Clock Configuration

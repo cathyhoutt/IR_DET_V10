@@ -1,5 +1,8 @@
 --cpu Cortex-M3
 "ir_det_v10\startup_stm32f103xe.o"
+"ir_det_v10\diwen_dgus.o"
+"ir_det_v10\ds18b20.o"
+"ir_det_v10\soft_i2c.o"
 "ir_det_v10\main.o"
 "ir_det_v10\gpio.o"
 "ir_det_v10\adc.o"
